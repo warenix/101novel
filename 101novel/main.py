@@ -3,7 +3,7 @@ import re
 import shutil
 import os
 import io
-
+import re
 
 def convertRawHtmlToCharset(raw_html, ori_encoding, charset):
     return raw_html.encode(r.encoding, 'ignore').decode(charset, 'ignore')
@@ -79,7 +79,8 @@ raw_html = convertRawHtmlToCharset(raw_html, r.encoding, charset)
 # print convertRawHtmlToCharset(raw_html, r.encoding, charset)
 
 # start getting all chapters page by page
-def process_one_page(book_id, page_no, chapter_no, out_dir):
+def process_one_page(book_id, page_size, chapter_no, out_dir):
+    page_no = chapter_no/page_size + 1
     chapter_index_url = "http://m.101novel.com/%s/%s_%d/" % (
         'ck101', book_id, page_no)
     print chapter_index_url
@@ -103,11 +104,14 @@ def process_one_page(book_id, page_no, chapter_no, out_dir):
 
     # print chapter_list
 
+    next_chapter_no = (page_no-1)*page_size+1
     for chapter in chapter_list:
-        filename = '%s/%d.html' % (out_dir, chapter_no)
-        if os.path.isfile(filename):
-            chapter_no += 1
+        if next_chapter_no < chapter_no:
+            next_chapter_no += 1
             continue
+
+        filename = '%s/%d.html' % (out_dir, next_chapter_no)
+        print "resume download for next_chapter_no[%d]" % next_chapter_no
 
         chapter_url = 'http://m.101novel.com/' + chapter['url']
         print 'download %s - %s' % (chapter_url, chapter['title'])
@@ -124,9 +128,7 @@ def process_one_page(book_id, page_no, chapter_no, out_dir):
             chapter_content = matches.group(1)
         # print chapter_content
 
-        with io.open('%s/index.csv' % (out_dir), 'a') as f:
-            print "write index %s" % (chapter['title'])
-            f.write(u'%s,%s\n' % (filename, chapter['title']))
+        save_index(out_dir, filename, chapter['title'])
 
         with io.open(filename, 'w') as f:
 
@@ -136,21 +138,54 @@ def process_one_page(book_id, page_no, chapter_no, out_dir):
 	<head><meta http-equiv="Content-Type" content="text/html;charset=utf-8" /><title>%s</title></head><body>
 ''' % (chapter['title']))
             # f.write('<meta name="cover" content="%s">' % (cover_image_filename).decode('utf-8'))
+            f.write(u'<h1>%s</h1>' % chapter['title'])
             f.write(chapter_content)
             f.write('</body></html>'.decode('utf-8'))
 
-        chapter_no += 1
-    return chapter_no
+        next_chapter_no += 1
+    return next_chapter_no
+
+def readLastLine(file):
+    with open(file, "rb") as f:
+        first = f.readline()        # Read the first line.
+        f.seek(-2, os.SEEK_END)     # Jump to the second last byte.
+        while f.read(1) != b"\n":   # Until EOL is found...
+            f.seek(-2, os.SEEK_CUR) # ...jump back the read byte plus one more.
+        last = f.readline()         # Read last line.
+        return last
+    return None
+
+def save_index(out_dir, filename, title):
+    with io.open('%s/index.csv' % (out_dir), 'a') as f:
+        print "write index %s" % (title)
+        f.write(u'%s,%s\n' % (filename, title))
 
 if __name__ == '__main__':
+    out_dir = 'book'
+    delimiter = ','
+
+    page_size = 20
     chapter_no = 1
     page_no = 1
+
+    last_line = readLastLine('%s/index.csv' % (out_dir))
+    if last_line is not None:
+        regex = r"book\/(\d+)\.html,(.+)"
+        matches = re.match(regex, last_line)
+        if matches:
+            chapter_no = int(matches.group(1)) + 1
+            page_no = chapter_no/page_size+1
+
+    print 'start at chapter_no[%d] from page_no[%d]' % (chapter_no, page_no)
+    # exit(0)
+
+
+
     while True:
         next_chapter_no = process_one_page(
-            book_id, page_no, chapter_no, out_dir='book')
+            book_id, page_size, chapter_no, out_dir)
         if next_chapter_no == chapter_no:
             break
         chapter_no = next_chapter_no
-        page_no += 1
 
     print 'next chapter ', chapter_no
