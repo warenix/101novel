@@ -12,6 +12,7 @@ ebook-convert  book/toc.html  $title.mobi \
 	--max-toc-links 10000 \
 	--cover "$cover"
 
-ebook-meta --title "$title" $title.mobi
+ebook-meta --title "$title" $title.mobi \
 	--language "zh-hant"\
+	--authors=$author
 

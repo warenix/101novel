@@ -146,13 +146,16 @@ def process_one_page(book_id, page_size, chapter_no, out_dir):
     return next_chapter_no
 
 def readLastLine(file):
-    with open(file, "rb") as f:
-        first = f.readline()        # Read the first line.
-        f.seek(-2, os.SEEK_END)     # Jump to the second last byte.
-        while f.read(1) != b"\n":   # Until EOL is found...
-            f.seek(-2, os.SEEK_CUR) # ...jump back the read byte plus one more.
-        last = f.readline()         # Read last line.
-        return last
+    try:
+        with open(file, "rb") as f:
+            first = f.readline()        # Read the first line.
+            f.seek(-2, os.SEEK_END)     # Jump to the second last byte.
+            while f.read(1) != b"\n":   # Until EOL is found...
+                f.seek(-2, os.SEEK_CUR) # ...jump back the read byte plus one more.
+            last = f.readline()         # Read last line.
+            return last
+    except:
+        pass
     return None
 
 def save_index(out_dir, filename, title):
