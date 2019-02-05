@@ -28,8 +28,8 @@ regex_charset = r"<meta charset=(.+)\".+"
 regex_cover_image = r"<meta property=\"og:image\" content=\"(.+?)\"/>"
 
 
-book_id = '80668'
-main_url = "https://m.101novel.com/ck101/80668/"
+book_id = '26824'
+main_url = "https://m.108txt.com/ck101/%s/" % book_id
 
 # book_id = None
 # matches = re.search(regex_book_id, main_url, re.M|re.I|re.S)
